@@ -1,0 +1,50 @@
+name: Download Tokenizer Only
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Hugging Face Hub
+        run: pip install huggingface_hub
+
+      - name: Download Tokenizer
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -c "
+          from huggingface_hub import snapshot_download
+          import os
+
+          # Chỉ tải file phụ bị thiếu vào đúng cấu trúc cũ
+          snapshot_download(
+              repo_id='OpenMOSS-Team/MOSS-Audio-Tokenizer-Nano-ONNX',
+              cache_dir='vieneu_cache/hf_cache/hub',
+              max_workers=4
+          )
+          "
+
+      - name: Archive Tokenizer Folder
+        run: |
+          tar -czf moss_tokenizer.tar.gz vieneu_cache
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.1.0
+          name: MOSS Tokenizer Patch
+          body: |
+            Bản vá chứa file tokenizer phụ bị thiếu (Cực nhẹ).
+          files: moss_tokenizer.tar.gz
