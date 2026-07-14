@@ -1,0 +1,50 @@
+name: Download HF Model to Release
+on:
+  workflow_dispatch: # Cho phép bạn bấm nút chạy thủ công bất cứ lúc nào
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Hugging Face Hub
+        run: pip install huggingface_hub
+
+      - name: Download Model
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          python -c "
+          from huggingface_hub import snapshot_download
+          import os
+          # Tải model vào cấu trúc thư mục chuẩn xác mà vieneu yêu cầu
+          snapshot_download(
+              repo_id='pnnbao-ump/VieNeu-TTS-v3-Turbo',
+              cache_dir='vieneu_cache/hf_cache/hub',
+              max_workers=8
+          )
+          "
+
+      - name: Archive Cache Folder
+        run: |
+          # Nén thư mục lại thành 1 file duy nhất để upload
+          tar -czf vieneu_model.tar.gz vieneu_cache
+
+      - name: Upload to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: VieNeu TTS Model V3 Turbo
+          body: |
+            Trọn bộ model VieNeu đã được tải sẵn từ Hugging Face.
+            Dùng link này để kéo thẳng về Google Drive của bạn.
+          files: vieneu_model.tar.gz
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
